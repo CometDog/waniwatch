@@ -2,10 +2,15 @@
 
 static Window *s_main_window;
 static TextLayer *s_time_layer, *s_date_layer, *s_layer;
-static GBitmap *s_bitmap;
-static BitmapLayer *s_bitmap_layer;
-
-
+static bool is_open = true;
+static int toggle_count = 0;
+static GBitmap *s_bitmap_wani;
+static GBitmap *s_bitmap_wani_closed;
+static GBitmap *s_bitmap_fish_1;
+static GBitmap *s_bitmap_fish_2;
+static BitmapLayer *s_bitmap_wani_layer;
+static BitmapLayer *s_bitmap_fish_1_layer;
+static BitmapLayer *s_bitmap_fish_2_layer;
 
 static void update_time() {
   // Get a tm structure
@@ -28,6 +33,32 @@ strftime(ss_buffer, sizeof(ss_buffer), " %a", tick_time);
   text_layer_set_text(s_layer, ss_buffer);
 }
 
+static void toggle_wani() {
+  if (is_open) {
+    bitmap_layer_set_bitmap(s_bitmap_wani_layer, s_bitmap_wani_closed);
+    is_open = false;
+  } else {
+    bitmap_layer_set_bitmap(s_bitmap_wani_layer, s_bitmap_wani);
+    is_open = true;
+  }
+}
+
+static void toggle_wani_loop() {
+    if (toggle_count < 10 || !is_open) {
+      app_timer_register(1000, toggle_wani_loop, NULL);
+      toggle_wani();
+      toggle_count++;
+    } else {
+      toggle_count = 0;
+    }
+}
+
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+  if (toggle_count == 0) {
+    toggle_wani_loop();
+  }
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
@@ -36,10 +67,20 @@ static void main_window_load(Window *window) {
   // Get information about the Window
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
+  GRect bitmap_bounds = GRect(0, 0, 180, 180); // Original canvas size of bitmaps
+  if (bounds.size.w > bitmap_bounds.size.w && bounds.size.h > bitmap_bounds.size.h) {
+    bitmap_bounds = bounds;
+  }
+  
+#if defined(PBL_COLOR)
+  window_set_background_color(window, GColorVividCerulean);
+#else
+  window_set_background_color(window, GColorLightGray);
+#endif
 
   // Create the TextLayer with specific bounds
   s_time_layer = text_layer_create(
-      GRect(0, PBL_IF_ROUND_ELSE(60, 60), bounds.size.w, 50));
+      GRect(0, bounds.size.h * 0.35, bounds.size.w, 50));
   
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(s_time_layer, GColorClear);
@@ -50,33 +91,56 @@ static void main_window_load(Window *window) {
   
   
   // Create date TextLayer
+  int date_left_padding = 14;
+
   s_date_layer = text_layer_create(
-      GRect(PBL_IF_ROUND_ELSE(46, 28), PBL_IF_ROUND_ELSE(45, 45), bounds.size.w, 50));
+      GRect(date_left_padding, bounds.size.h * 0.27, bounds.size.w / 2, 50));
   
   text_layer_set_text_color(s_date_layer, GColorWhite);
   text_layer_set_background_color(s_date_layer, GColorClear);
-  text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
+  text_layer_set_text_alignment(s_date_layer, GTextAlignmentRight);
   text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS));
   
     // Create s_layer TextLayer
   s_layer = text_layer_create(
-      GRect(PBL_IF_ROUND_ELSE(30,28),  PBL_IF_ROUND_ELSE(45, 45), bounds.size.w, 50));
+      GRect((bounds.size.w / 2) + date_left_padding, bounds.size.h * 0.27, bounds.size.w / 2, 50));
   
   text_layer_set_text_color(s_layer, GColorWhite);
   text_layer_set_background_color(s_layer, GColorClear);
-  text_layer_set_text_alignment(s_layer, GTextAlignmentCenter);
+  text_layer_set_text_alignment(s_layer, GTextAlignmentLeft);
   text_layer_set_font(s_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   
+  // Add fish to Window
+  s_bitmap_fish_1 = gbitmap_create_with_resource(RESOURCE_ID_FISH1);
+  s_bitmap_fish_1_layer = bitmap_layer_create(bitmap_bounds);
+  bitmap_layer_set_background_color(s_bitmap_fish_1_layer, GColorClear);
+  bitmap_layer_set_alignment(s_bitmap_fish_1_layer, GAlignBottomRight);
+  bitmap_layer_set_bitmap(s_bitmap_fish_1_layer, s_bitmap_fish_1);
+  bitmap_layer_set_compositing_mode(s_bitmap_fish_1_layer, GCompOpSet);
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_fish_1_layer));
+
+  s_bitmap_fish_2 = gbitmap_create_with_resource(RESOURCE_ID_FISH2);
+  s_bitmap_fish_2_layer = bitmap_layer_create(bitmap_bounds);
+  bitmap_layer_set_background_color(s_bitmap_fish_2_layer, GColorClear);
+  bitmap_layer_set_alignment(s_bitmap_fish_2_layer, GAlignTopLeft);
+  if (bounds.size.w > bitmap_bounds.size.w && bounds.size.h > bitmap_bounds.size.h) {
+    bitmap_layer_set_alignment(s_bitmap_fish_2_layer, GAlignTopLeft);
+  }
+  bitmap_layer_set_bitmap(s_bitmap_fish_2_layer, s_bitmap_fish_2);
+  bitmap_layer_set_compositing_mode(s_bitmap_fish_2_layer, GCompOpSet);
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_fish_2_layer));
    
   
-  // Add to Window
-  s_bitmap = gbitmap_create_with_resource(RESOURCE_ID_WANI);
-  s_bitmap_layer = bitmap_layer_create(bounds);
-  bitmap_layer_set_background_color(s_bitmap_layer, GColorVividCerulean);
-  bitmap_layer_set_bitmap(s_bitmap_layer, s_bitmap);
-  bitmap_layer_set_compositing_mode(s_bitmap_layer, GCompOpSet);
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
-  
+  // Add wani to Window
+  s_bitmap_wani = gbitmap_create_with_resource(RESOURCE_ID_WANI);
+  s_bitmap_wani_closed = gbitmap_create_with_resource(RESOURCE_ID_WANICLOSED);
+  s_bitmap_wani_layer = bitmap_layer_create(bitmap_bounds);
+  bitmap_layer_set_background_color(s_bitmap_wani_layer, GColorClear);
+  bitmap_layer_set_alignment(s_bitmap_wani_layer, GAlignBottomRight);
+  bitmap_layer_set_bitmap(s_bitmap_wani_layer, s_bitmap_wani);
+  bitmap_layer_set_compositing_mode(s_bitmap_wani_layer, GCompOpSet);
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_wani_layer));
+
   
   // Add it as a child layer to the Window's root layer
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
@@ -92,7 +156,13 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_time_layer);
   text_layer_destroy(s_date_layer);
   text_layer_destroy(s_layer);
-  bitmap_layer_destroy(s_bitmap_layer);
+  bitmap_layer_destroy(s_bitmap_wani_layer);
+  bitmap_layer_destroy(s_bitmap_fish_1_layer);
+  bitmap_layer_destroy(s_bitmap_fish_2_layer);
+  gbitmap_destroy(s_bitmap_wani);
+  gbitmap_destroy(s_bitmap_wani_closed);
+  gbitmap_destroy(s_bitmap_fish_1);
+  gbitmap_destroy(s_bitmap_fish_2);
 }
 
 
@@ -114,9 +184,15 @@ static void init() {
 
   // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+
+  // Register with tap service
+  accel_tap_service_subscribe(accel_tap_handler);
 }
 
 static void deinit() {
+  // Unsubscribe from tap service
+  accel_tap_service_unsubscribe();
+
   // Destroy Window
   window_destroy(s_main_window);
 }

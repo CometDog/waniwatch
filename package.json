@@ -15,7 +15,10 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk"
+      "chalk",
+      "diorite",
+      "emery",
+      "flint"
     ],
     "watchapp": {
       "watchface": true
@@ -41,7 +44,12 @@
           "type": "bitmap"
         },
         {
-          "file": "images/mini",
+          "file": "images/waniclosed.png",
+          "name": "WANICLOSED",
+          "type": "bitmap"
+        },
+        {
+          "file": "images/mini.png",
           "menuIcon": true,
           "name": "MINIWANI",
           "type": "bitmap",
