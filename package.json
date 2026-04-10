@@ -1,0 +1,53 @@
+{
+  "name": "waniwatch",
+  "author": "pxpxpx82@gmail.com",
+  "version": "1.12.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "waniwatch",
+    "uuid": "5e6ad2c0-9b0f-44bc-8ba3-a9bfef447df8",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "resources": {
+      "media": [
+        {
+          "file": "images/fish2.png",
+          "name": "FISH2",
+          "type": "bitmap"
+        },
+        {
+          "file": "images/fish1.png",
+          "name": "FISH1",
+          "type": "bitmap"
+        },
+        {
+          "file": "images/wani.png",
+          "name": "WANI",
+          "type": "bitmap"
+        },
+        {
+          "file": "images/mini",
+          "menuIcon": true,
+          "name": "MINIWANI",
+          "type": "bitmap",
+          "memoryFormat": "1bit"
+        }
+      ]
+    }
+  }
+}
